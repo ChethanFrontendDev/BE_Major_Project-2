@@ -30,16 +30,34 @@ app.post("/agents", async (req, res) => {
   try {
     const savedSalesAgent = await createSalesAgent(req.body);
 
+    // 201: created
     if (savedSalesAgent) {
       res.status(201).json({
         message: "Sales Agent Added Successfully.",
         salesAgent: savedSalesAgent,
       });
-    } else {
-      res.status(400).json({ error: "Sales Agent Not Found." });
     }
   } catch (error) {
-    res.status(500).json({ error: "Failed to Add Sales Agent." });
+    // 400 bad request: validation error
+    if (error.name === "ValidationError") {
+      const field = Object.keys(error.errors)[0];
+      const message = error.errors[field].message;
+
+      return res.status(400).json({
+        error: `Invalid Input: '${field}' is required.`,
+        details: message,
+      });
+    }
+
+    // 409 conflict: duplicate email
+    if (error.code === 11000 && error.keyValue && error.keyValue.email) {
+      return res.status(409).json({
+        error: `Sales agent with email ${error.keyValue.email} already exists.`,
+      });
+    }
+
+    // 500 internal server error
+    res.status(500).json({ error: "Server Error: Failed to Add Sales Agent." });
   }
 });
 
@@ -54,17 +72,36 @@ async function createLead(LeadData) {
 }
 app.post("/leads", async (req, res) => {
   try {
-    const savedLead = await createLead(req.body);
+    const { salesAgent } = req.body;
 
+    // 404 not found: check if sales agent object exists.
+    const salesAgentExists = await SalesAgent.findById(salesAgent);
+    if (!salesAgentExists) {
+      return res
+        .status(404)
+        .json({ error: `Sales agent with ID '${salesAgent}' not found.` });
+    }
+
+    // 201
+    const savedLead = await createLead(req.body);
     if (savedLead) {
       res
         .status(201)
         .json({ message: "Lead Added Successfully.", lead: savedLead });
-    } else {
-      res.status(400).json({ error: "Lead Not Found." });
     }
   } catch (error) {
-    res.status(500).json({ error: "Failed to Add Lead." });
+    // 400 
+    if (error.name === "ValidationError") {
+      const field = Object.keys(error.errors)[0];
+      const message = error.errors[field].message;
+      return res.status(400).json({
+        error: `Invalid Input: '${field}' is required.`,
+        details: message,
+      });
+    }
+
+    // 500
+    res.status(500).json({ error: "Server Error: Failed to Add Lead." });
   }
 });
 
@@ -85,21 +122,27 @@ app.post("/leads/:id/comments", async (req, res) => {
   try {
     const { commentText, salesAgentId } = req.body;
     const leadId = req.params.id;
+
+    // 404
+    const leadExists = await Lead.findById(leadId);
+    if (!leadExists) {
+      res.status(404).json({ error: `Lead with ID '${leadId}' not found.` });
+    }
     const savedComment = await createComments(
       leadId,
       salesAgentId,
       commentText
     );
 
+    // 201
     if (savedComment) {
       res.status(201).json({
         message: "Comment Added Successfully.",
         comment: savedComment,
       });
-    } else {
-      res.status(400).json({ error: "Comment Not Found." });
     }
   } catch (error) {
+    // 500
     res.status(500).json({ error: "Failed to Add Comment." });
   }
 });
