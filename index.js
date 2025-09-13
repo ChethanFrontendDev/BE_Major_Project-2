@@ -7,6 +7,8 @@ const express = require("express");
 const app = express();
 
 const cors = require("cors");
+const { default: mongoose } = require("mongoose");
+const { error } = require("console");
 const corsOptions = {
   origin: "*",
   credentials: true,
@@ -127,6 +129,50 @@ app.post("/leads", async (req, res) => {
     res.status(500).json({ error: "Server Error: Failed to Add Lead." });
   }
 });
+// !UPDATE Leads
+async function updateLeadById(leadId, dataToUpdate) {
+  try {
+    const updateLead = await Lead.findByIdAndUpdate(leadId, dataToUpdate, {
+      new: true,
+      runValidators: true,
+    });
+    return updateLead;
+  } catch (error) {
+    throw error;
+  }
+}
+app.put("/leads/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedLeadData = req.body;
+
+    // Validate: valid mongodb object id or not
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid Lead Id Format" });
+    }
+
+    // perform the update
+    const updatedLead = await updateLeadById(id, updatedLeadData);
+    res.status(200).json({
+      message: "Lead Updated Successfully.",
+      lead: updatedLead,
+    });
+  } catch (error) {
+    // 400
+    if (error.name === "ValidationError") {
+      const field = Object.keys(error.errors)[0];
+      const message = error.errors[field].message;
+
+      return res.status(400).json({
+        error: `Invalid Input '${field}' is required.`,
+        details: message,
+      });
+    }
+    // 500
+    res.status(500).json({ error: "Server Error: Failed to update lead." });
+  }
+});
+
 // !GET Leads
 async function readLeads(query) {
   try {
