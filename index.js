@@ -7,7 +7,7 @@ const express = require("express");
 const app = express();
 
 const cors = require("cors");
-const { default: mongoose } = require("mongoose");
+const { default: mongoose, deleteModel } = require("mongoose");
 const { error } = require("console");
 const corsOptions = {
   origin: "*",
@@ -170,6 +170,33 @@ app.put("/leads/:id", async (req, res) => {
     }
     // 500
     res.status(500).json({ error: "Server Error: Failed to update lead." });
+  }
+});
+// !DELETE Lead
+async function deleteLeadById(leadId) {
+  try {
+    const deleteLead = await Lead.findByIdAndDelete(leadId);
+    return deleteLead;
+  } catch (error) {
+    throw error;
+  }
+}
+app.delete("/leads/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid Lead ID format." });
+    }
+
+    const deletedLead = await deleteLeadById(id);
+    if (!deletedLead) {
+      return res.status(404).json({ error: `Lead with ID '${id}' not found.` });
+    }
+    
+    return res.status(200).json({ message: "Lead Deleted Successfully." });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete lead." });
   }
 });
 
