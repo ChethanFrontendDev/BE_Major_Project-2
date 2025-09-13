@@ -3,12 +3,11 @@ const Lead = require("./models/lead.models");
 const Comment = require("./models/comment.models");
 
 const { initializeDatabse } = require("./db/db.connect");
+const mongoose = require("mongoose");
 const express = require("express");
 const app = express();
 
 const cors = require("cors");
-const { default: mongoose, deleteModel } = require("mongoose");
-const { error } = require("console");
 const corsOptions = {
   origin: "*",
   credentials: true,
@@ -193,7 +192,7 @@ app.delete("/leads/:id", async (req, res) => {
     if (!deletedLead) {
       return res.status(404).json({ error: `Lead with ID '${id}' not found.` });
     }
-    
+
     return res.status(200).json({ message: "Lead Deleted Successfully." });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete lead." });
