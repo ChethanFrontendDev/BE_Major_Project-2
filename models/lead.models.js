@@ -60,10 +60,32 @@ leadSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
 
   // If status is "Closed" then update closedAt
-  if (this.isModified("status") && this.status === "Closed" && !this.closedAt) {
+  if (this.isModified("status") && this.status === "Closed") {
     this.closedAt = new Date();
   }
 
+  next();
+});
+
+// Pre-findOneAndUpdate middleware for update queries
+leadSchema.pre("findOneAndUpdate", function (next) {
+  const update = this.getUpdate();
+
+  // Handle both direct and $set updates
+  if (!update.$set) {
+    update.$set = {};
+  }
+
+  // Update updatedAt always
+  update.$set.updatedAt = new Date();
+
+  // If status is being set to "Closed", update closedAt
+  const status = update.status || update.$set.status;
+  if (status === "Closed") {
+    update.$set.closedAt = new Date();
+  }
+
+  this.setUpdate(update);
   next();
 });
 
