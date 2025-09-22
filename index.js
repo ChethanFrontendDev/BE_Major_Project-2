@@ -205,10 +205,18 @@ async function readLeads(query) {
     const filter = {};
 
     // optional filter
-    if (query.salesAgent) filter.salesAgent = query.salesAgent;
     if (query.status) filter.status = query.status;
     if (query.tags) filter.tags = query.tags;
     if (query.source) filter.source = query.source;
+    if (query.salesAgent) {
+      const agent = await SalesAgent.findOne({ name: query.salesAgent });
+
+      if (agent) {
+        filter.salesAgent = agent._id;
+      } else {
+        return [];
+      }
+    }
 
     // if no filter provided, then empty object passed.
     const leads = await Lead.find(filter).populate("salesAgent");
