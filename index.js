@@ -62,6 +62,30 @@ app.post("/agents", async (req, res) => {
     res.status(500).json({ error: "Server Error: Failed to Add Sales Agent." });
   }
 });
+// !DELETE Sales Agent
+async function deleteAgentById(agentId) {
+  try {
+    const deleteAgent = await SalesAgent.findByIdAndDelete(agentId);
+    return deleteAgent;
+  } catch (error) {
+    throw error;
+  }
+}
+app.delete("/agents/:id", async (req, res) => {
+  try {
+    const deletedAgent = await deleteAgentById(req.params.id);
+
+    if (!deletedAgent) {
+      return res
+        .status(404)
+        .json({ error: `Agent with ID ${req.params.id} not found.` });
+    }
+    return res.status(200).json({ message: "Agent Deleted Successfully." });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete agent." });
+  }
+});
+
 // !GET Sales Agent
 async function readAllAgents() {
   try {
